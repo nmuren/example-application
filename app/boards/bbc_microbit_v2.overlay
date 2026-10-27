@@ -1,0 +1,36 @@
+/*
+ * Copyright (c) 2021 Nordic Semiconductor ASA
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/* This devicetree overlay file is a starter template for the BBC micro:bit V2.
+ *
+ * This overlay will compile and flash successfully, but the LED
+ * will NOT work correctly because GPIO pin 21 is used by the LED matrix row
+ * driver. The application won't crash, but you won't see any LED blinking.
+ *
+ */
+
+/ {
+	example_sensor: example-sensor {
+		compatible = "zephyr,example-sensor";
+		input-gpios = <&gpio0 23 GPIO_ACTIVE_LOW>;  /* Button B */
+	};
+
+	blink_led: blink-led {
+		compatible = "blink-gpio-led";  /* TODO: Change to "blink-matrix-led" */
+		led-gpios = <&gpio0 21 GPIO_ACTIVE_HIGH>;
+		blink-period-ms = <1000>;
+	};
+};
+
+&gpio0 {
+	status = "okay";
+};
+
+&led_matrix {
+	/* The LED matrix hardware is available on the BBC micro:bit.
+	 * Currently disabled because we're trying to use GPIO instead.
+	 * TODO: Enable this (status = "okay") once your matrix driver is ready. */
+	status = "disabled";
+};
