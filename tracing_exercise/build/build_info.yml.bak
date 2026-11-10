@@ -1,0 +1,4 @@
+west:
+  command: /Users/nm/zephyrproject/.venv/bin/west build -b bbc_microbit_v2 --pristine
+  topdir: /Users/nm/zephyrproject
+  version: 1.5.0

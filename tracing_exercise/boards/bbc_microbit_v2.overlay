@@ -1,0 +1,14 @@
+/*
+ * Copyright (c) 2025 IoT Course
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/ {
+	aliases {
+		sw0 = &buttonA;
+	};
+};
+
+&gpio0 {
+	status = "okay";
+};

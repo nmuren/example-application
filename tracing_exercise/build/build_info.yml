@@ -1,0 +1,57 @@
+cmake:
+  application:
+    configuration-dir: '/Users/nm/zephyrproject/example-application/tracing_exercise'
+    source-dir: '/Users/nm/zephyrproject/example-application/tracing_exercise'
+  board:
+    name: 'bbc_microbit_v2'
+    path:
+     - '/Users/nm/zephyrproject/zephyr/boards/bbc/microbit_v2'
+    qualifiers: 'nrf52833'
+    revision: ''
+  devicetree:
+    bindings-dirs:
+     - '/Users/nm/zephyrproject/example-application/dts/bindings'
+     - '/Users/nm/zephyrproject/zephyr/dts/bindings'
+    files:
+     - '/Users/nm/zephyrproject/zephyr/boards/bbc/microbit_v2/bbc_microbit_v2.dts'
+     - '/Users/nm/zephyrproject/example-application/tracing_exercise/boards/bbc_microbit_v2.overlay'
+    include-dirs:
+     - '/Users/nm/zephyrproject/example-application/include'
+     - '/Users/nm/zephyrproject/example-application/dts'
+     - '/Users/nm/zephyrproject/modules/hal/stm32/dts'
+     - '/Users/nm/zephyrproject/zephyr/include'
+     - '/Users/nm/zephyrproject/zephyr/include/zephyr'
+     - '/Users/nm/zephyrproject/zephyr/dts/common'
+     - '/Users/nm/zephyrproject/zephyr/dts/vendor'
+     - '/Users/nm/zephyrproject/zephyr/dts/rx'
+     - '/Users/nm/zephyrproject/zephyr/dts/x86'
+     - '/Users/nm/zephyrproject/zephyr/dts/xtensa'
+     - '/Users/nm/zephyrproject/zephyr/dts/sparc'
+     - '/Users/nm/zephyrproject/zephyr/dts/riscv'
+     - '/Users/nm/zephyrproject/zephyr/dts/posix'
+     - '/Users/nm/zephyrproject/zephyr/dts/arm64'
+     - '/Users/nm/zephyrproject/zephyr/dts/arm'
+     - '/Users/nm/zephyrproject/zephyr/dts/arc'
+     - '/Users/nm/zephyrproject/zephyr/dts'
+    user-files:
+     - '/Users/nm/zephyrproject/example-application/tracing_exercise/boards/bbc_microbit_v2.overlay'
+  kconfig:
+    files:
+     - '/Users/nm/zephyrproject/zephyr/boards/bbc/microbit_v2/bbc_microbit_v2_defconfig'
+     - '/Users/nm/zephyrproject/example-application/tracing_exercise/prj.conf'
+    user-files:
+     - '/Users/nm/zephyrproject/example-application/tracing_exercise/prj.conf'
+  toolchain:
+    name: 'zephyr'
+    path: '/Users/nm/zephyr-sdk-1.0.1'
+  vendor-specific:
+    nordic:
+      svdfile: '/Users/nm/zephyrproject/modules/hal/nordic/nrfx/bsp/stable/mdk/nrf52833.svd'
+  zephyr:
+    version: '4.4.0'
+    zephyr-base: '/Users/nm/zephyrproject/zephyr'
+version: '0.1.0'
+west:
+  command: '/Users/nm/zephyrproject/.venv/bin/west build -b bbc_microbit_v2 --pristine'
+  topdir: '/Users/nm/zephyrproject'
+  version: '1.5.0'
