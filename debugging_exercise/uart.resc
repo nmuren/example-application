@@ -1,0 +1,28 @@
+:name: BBC micro:bit V2 — Week 1 UART
+:description: Boot the physical-board Zephyr ELF and show its UART output
+
+using sysbus
+$bin?=@build/zephyr/zephyr.elf
+$uart_port?=60031
+
+mach create "microbit"
+machine LoadPlatformDescription @microbit_v2.repl
+
+emulation CreateServerSocketTerminal $uart_port "microbit_uart" false
+connector Connect uart0 microbit_uart
+
+sysbus LoadELF $bin
+cpu0 VectorTableOffset `sysbus GetSymbolAddress "_vector_table"`
+showAnalyzer uart0
+start
+
+# Monitor prints nothing on Press. Watch the UART analyzer window.
+# Button GPIO changes are scheduled in virtual time; hold the pin down.
+# sleep 2
+# echo "Pressing gpio0.buttonA"
+# sysbus.gpio0.buttonA Release
+# sleep 0.5
+# sysbus.gpio0.buttonA Press
+# sleep 0.5
+# sysbus.gpio0.buttonA Release
+# echo "Released gpio0.buttonA"

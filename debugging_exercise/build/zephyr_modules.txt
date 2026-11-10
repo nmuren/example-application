@@ -1,0 +1,4 @@
+"example-application":"/Users/nm/zephyrproject/example-application":"/Users/nm/zephyrproject/example-application"
+"cmsis_6":"/Users/nm/zephyrproject/modules/hal/cmsis_6":"${ZEPHYR_CMSIS_6_CMAKE_DIR}"
+"hal_nordic":"/Users/nm/zephyrproject/modules/hal/nordic":"${ZEPHYR_HAL_NORDIC_CMAKE_DIR}"
+"hal_stm32":"/Users/nm/zephyrproject/modules/hal/stm32":"/Users/nm/zephyrproject/modules/hal/stm32"
