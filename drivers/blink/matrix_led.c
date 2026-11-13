@@ -28,15 +28,16 @@ struct blink_matrix_led_data {
 struct blink_matrix_led_config {
 	const struct device *display;
 	unsigned int period_ms;
-	/* TODO: Add brightness field here */
+	uint8_t brightness;
 };
 
-/* TODO: Define your pattern here (5x5 LEDs)
- * Use PIXEL_MASK macro: PIXEL_MASK(led0, led1, led2, led3, led4)
- * Example patterns: heart, smiley, letter, number, or your own design
- */
+/* 5x5 heart. Each row is one byte; bit 0 is the leftmost column. */
 static const uint8_t your_pattern[] = {
-	/* TODO: Add your 5 rows here */
+	PIXEL_MASK(0, 1, 0, 1, 0),
+	PIXEL_MASK(1, 1, 1, 1, 1),
+	PIXEL_MASK(1, 1, 1, 1, 1),
+	PIXEL_MASK(0, 1, 1, 1, 0),
+	PIXEL_MASK(0, 0, 1, 0, 0),
 };
 
 /* Blank pattern (all LEDs off) */
@@ -50,11 +51,22 @@ static const uint8_t blank_pattern[] = {
 
 static void display_pattern(const struct device *display, const uint8_t *pattern)
 {
-	/* TODO: Implement display pattern write
-	 * - Create display_buffer_descriptor
-	 * - Call display_write() with pattern data
-	 * - Check return value and log errors
+	/*
+	 * Five rows are stored as one byte each. Pitch is 8 so the driver
+	 * skips the three unused bits before the next row.
 	 */
+	static const struct display_buffer_descriptor desc = {
+		.buf_size = 5,
+		.width = 5,
+		.height = 5,
+		.pitch = 8,
+	};
+	int ret;
+
+	ret = display_write(display, 0, 0, &desc, pattern);
+	if (ret < 0) {
+		LOG_ERR("Could not write pattern (%d)", ret);
+	}
 }
 
 static void blink_matrix_led_on_timer_expire(struct k_timer *timer)
@@ -63,11 +75,8 @@ static void blink_matrix_led_on_timer_expire(struct k_timer *timer)
 	const struct blink_matrix_led_config *config = dev->config;
 	struct blink_matrix_led_data *data = dev->data;
 
-	/* TODO: Implement timer callback
-	 * - Toggle data->state
-	 * - Display your_pattern when state is true
-	 * - Display blank_pattern when state is false
-	 */
+	data->state = !data->state;
+	display_pattern(config->display, data->state ? your_pattern : blank_pattern);
 }
 
 static int blink_matrix_led_set_period_ms(const struct device *dev,
@@ -104,18 +113,29 @@ static int blink_matrix_led_init(const struct device *dev)
 		return -ENODEV;
 	}
 
-	/* TODO: Verify display capabilities
-	 * - Call display_get_capabilities()
-	 * - Check for PIXEL_FORMAT_MONO01 support
-	 * - Return -ENOTSUP if not supported
-	 */
+	display_get_capabilities(config->display, &caps);
+	if (!(caps.supported_pixel_formats & PIXEL_FORMAT_MONO01)) {
+		LOG_ERR("Display does not support MONO01");
+		return -ENOTSUP;
+	}
 
-	/* TODO: Configure display
-	 * - Set pixel format to PIXEL_FORMAT_MONO01
-	 * - Set brightness from config->brightness
-	 * - Disable blanking with display_blanking_off()
-	 * - Check return values and handle errors
-	 */
+	ret = display_set_pixel_format(config->display, PIXEL_FORMAT_MONO01);
+	if (ret < 0) {
+		LOG_ERR("Could not set pixel format (%d)", ret);
+		return ret;
+	}
+
+	ret = display_set_brightness(config->display, config->brightness);
+	if (ret < 0) {
+		LOG_ERR("Could not set brightness (%d)", ret);
+		return ret;
+	}
+
+	ret = display_blanking_off(config->display);
+	if (ret < 0) {
+		LOG_ERR("Could not turn blanking off (%d)", ret);
+		return ret;
+	}
 
 	/* Initialize timer */
 	k_timer_init(&data->timer, blink_matrix_led_on_timer_expire, NULL);
@@ -135,18 +155,22 @@ static int blink_matrix_led_init(const struct device *dev)
 	return 0;
 }
 
-#define BLINK_MATRIX_LED_DEFINE(inst)                                          \
-	static struct blink_matrix_led_data data##inst;                        \
-                                                                               \
-	static const struct blink_matrix_led_config config##inst = {           \
-	    .display = DEVICE_DT_GET(DT_INST_PHANDLE(inst, display)),         \
-	    .period_ms = DT_INST_PROP_OR(inst, blink_period_ms, 0U),          \
-	    /* TODO: Read brightness-level from devicetree */                 \
-	};                                                                     \
-                                                                               \
-	DEVICE_DT_INST_DEFINE(inst, blink_matrix_led_init, NULL, &data##inst, \
-			      &config##inst, POST_KERNEL,                      \
-			      CONFIG_BLINK_INIT_PRIORITY,                      \
+#define BLINK_MATRIX_LED_DEFINE(inst)                                     	\
+	BUILD_ASSERT(DT_INST_PROP(inst, brightness_level) >= 1 &&             	\
+			     DT_INST_PROP(inst, brightness_level) <= 255,      			\
+		     "brightness-level must be between 1 and 255");            		\
+                                                                        	\
+	static struct blink_matrix_led_data data##inst;                        	\
+                                                                        	\
+	static const struct blink_matrix_led_config config##inst = {           	\
+	    .display = DEVICE_DT_GET(DT_INST_PHANDLE(inst, display)),          	\
+	    .period_ms = DT_INST_PROP_OR(inst, blink_period_ms, 0U),           	\
+	    .brightness = DT_INST_PROP(inst, brightness_level),                	\
+	};                                                                     	\
+                                                                            \
+	DEVICE_DT_INST_DEFINE(inst, blink_matrix_led_init, NULL, &data##inst, 	\
+			      &config##inst, POST_KERNEL,                      			\
+			      CONFIG_BLINK_INIT_PRIORITY,                      			\
 			      &blink_matrix_led_api);
 
 DT_INST_FOREACH_STATUS_OKAY(BLINK_MATRIX_LED_DEFINE)

@@ -18,9 +18,10 @@
 	};
 
 	blink_led: blink-led {
-		compatible = "blink-gpio-led";  /* TODO: Change to "blink-matrix-led" */
-		led-gpios = <&gpio0 21 GPIO_ACTIVE_HIGH>;
+		compatible = "blink-matrix-led";
+		display = <&led_matrix>;
 		blink-period-ms = <1000>;
+		brightness-level = <128>;
 	};
 };
 
@@ -29,8 +30,5 @@
 };
 
 &led_matrix {
-	/* The LED matrix hardware is available on the BBC micro:bit.
-	 * Currently disabled because we're trying to use GPIO instead.
-	 * TODO: Enable this (status = "okay") once your matrix driver is ready. */
-	status = "disabled";
+	status = "okay";
 };

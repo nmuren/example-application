@@ -11,6 +11,7 @@ description: |
         compatible = "blink-matrix-led";
         display = <&led_matrix>;
         blink-period-ms = <1000>;
+        brightness-level = <128>;
     };
 
 compatible: "blink-matrix-led"
@@ -27,6 +28,6 @@ properties:
     type: int
     description: Initial blinking period in milliseconds.
 
-  # TODO: Add a property for the default brightness here
-  # What type is appropriate for a brightness value?
-  # What should be a reasonable default value?
+  brightness-level:
+    type: int
+    description: Matrix brightness, in steps of 1/256. 255 is full brightness and 0 is minimal, matching display_set_brightness().
