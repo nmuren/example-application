@@ -22,7 +22,7 @@ LOG_MODULE_REGISTER(blink_matrix_led, CONFIG_BLINK_LOG_LEVEL);
 
 struct blink_matrix_led_data {
 	struct k_timer timer;
-	bool state;
+	unsigned int index;
 };
 
 struct blink_matrix_led_config {
@@ -31,13 +31,98 @@ struct blink_matrix_led_config {
 	uint8_t brightness;
 };
 
-/* 5x5 heart. Each row is one byte; bit 0 is the leftmost column. */
-static const uint8_t your_pattern[] = {
-	PIXEL_MASK(0, 1, 0, 1, 0),
-	PIXEL_MASK(1, 1, 1, 1, 1),
-	PIXEL_MASK(1, 1, 1, 1, 1),
-	PIXEL_MASK(0, 1, 1, 1, 0),
-	PIXEL_MASK(0, 0, 1, 0, 0),
+/* "NEBİL MÜREN": one 5x5 frame per character. */
+static const uint8_t letter_patterns[][5] = {
+	/* N */
+	{
+		PIXEL_MASK(1,0,0,0,1), 
+		PIXEL_MASK(1,1,0,0,1),
+		PIXEL_MASK(1,0,1,0,1), 
+		PIXEL_MASK(1,0,0,1,1),
+		PIXEL_MASK(1,0,0,0,1)
+	},
+	/* E */
+	{
+		PIXEL_MASK(1,1,1,1,1), 
+		PIXEL_MASK(1,0,0,0,0),
+		PIXEL_MASK(1,1,1,1,0), 
+		PIXEL_MASK(1,0,0,0,0),
+		PIXEL_MASK(1,1,1,1,1)
+	},
+	/* B */
+	{
+		PIXEL_MASK(1,1,1,1,0), 
+		PIXEL_MASK(1,0,0,0,1),
+		PIXEL_MASK(1,1,1,1,0), 
+		PIXEL_MASK(1,0,0,0,1),
+		PIXEL_MASK(1,1,1,1,0)
+	},
+	/* İ */
+	{
+		PIXEL_MASK(0,0,1,0,0), 
+		PIXEL_MASK(0,0,0,0,0),
+		PIXEL_MASK(0,1,1,1,0), 
+		PIXEL_MASK(0,0,1,0,0),
+		PIXEL_MASK(0,1,1,1,0)
+	},
+	/* L */
+	{
+		PIXEL_MASK(1,0,0,0,0), 
+		PIXEL_MASK(1,0,0,0,0),
+		PIXEL_MASK(1,0,0,0,0), 
+		PIXEL_MASK(1,0,0,0,0),
+		PIXEL_MASK(1,1,1,1,1)
+	},
+
+	/* Space */
+	{
+		PIXEL_MASK(0,0,0,0,0), 
+		PIXEL_MASK(0,0,0,0,0),
+		PIXEL_MASK(0,0,0,0,0), 
+		PIXEL_MASK(0,0,0,0,0),
+		PIXEL_MASK(0,0,0,0,0)
+	},
+
+	/* M */
+	{
+		PIXEL_MASK(1,0,0,0,1), 
+		PIXEL_MASK(1,1,0,1,1),
+		PIXEL_MASK(1,0,1,0,1), 
+		PIXEL_MASK(1,0,0,0,1),
+		PIXEL_MASK(1,0,0,0,1)
+	},
+	/* Ü */
+	{
+		PIXEL_MASK(0,1,0,1,0), 
+		PIXEL_MASK(0,0,0,0,0),
+		PIXEL_MASK(1,0,0,0,1), 
+		PIXEL_MASK(1,0,0,0,1),
+		PIXEL_MASK(0,1,1,1,0)
+	},
+	/* R */
+	{
+		PIXEL_MASK(1,1,1,1,0), 
+		PIXEL_MASK(1,0,0,0,1),
+		PIXEL_MASK(1,1,1,1,0), 
+		PIXEL_MASK(1,0,1,0,0),
+		PIXEL_MASK(1,0,0,1,0)
+	},
+	/* E */
+	{
+		PIXEL_MASK(1,1,1,1,1), 
+		PIXEL_MASK(1,0,0,0,0),
+		PIXEL_MASK(1,1,1,1,0), 
+		PIXEL_MASK(1,0,0,0,0),
+		PIXEL_MASK(1,1,1,1,1)
+	},
+	/* N */
+	{
+		PIXEL_MASK(1,0,0,0,1), 
+		PIXEL_MASK(1,1,0,0,1),
+		PIXEL_MASK(1,0,1,0,1), 
+		PIXEL_MASK(1,0,0,1,1),
+		PIXEL_MASK(1,0,0,0,1)
+	},
 };
 
 /* Blank pattern (all LEDs off) */
@@ -75,8 +160,8 @@ static void blink_matrix_led_on_timer_expire(struct k_timer *timer)
 	const struct blink_matrix_led_config *config = dev->config;
 	struct blink_matrix_led_data *data = dev->data;
 
-	data->state = !data->state;
-	display_pattern(config->display, data->state ? your_pattern : blank_pattern);
+	display_pattern(config->display, letter_patterns[data->index]);
+	data->index = (data->index + 1) % ARRAY_SIZE(letter_patterns);
 }
 
 static int blink_matrix_led_set_period_ms(const struct device *dev,
@@ -87,7 +172,7 @@ static int blink_matrix_led_set_period_ms(const struct device *dev,
 
 	if (period_ms == 0) {
 		k_timer_stop(&data->timer);
-		data->state = false;
+		data->index = 0;
 		display_pattern(config->display, blank_pattern);
 		return 0;
 	}
@@ -141,7 +226,7 @@ static int blink_matrix_led_init(const struct device *dev)
 	k_timer_init(&data->timer, blink_matrix_led_on_timer_expire, NULL);
 	k_timer_user_data_set(&data->timer, (void *)dev);
 
-	data->state = false;
+	data->index = 0;
 	display_pattern(config->display, blank_pattern);
 
 	/* Start blinking if a period was specified */
