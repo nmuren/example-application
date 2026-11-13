@@ -1,0 +1,12 @@
+# Copyright (c) 2024 Nordic Semiconductor ASA
+# SPDX-License-Identifier: Apache-2.0
+
+config BLINK_MATRIX_LED
+	bool "LED matrix-controlled blink driver"
+	default y
+	depends on DT_HAS_BLINK_MATRIX_LED_ENABLED
+	select DISPLAY
+	help
+	  Enable this option to use the LED matrix-controlled blink driver. This
+	  driver wraps the Nordic LED matrix display driver to provide a simple
+	  blink interface compatible with the blink driver class.

@@ -10,14 +10,17 @@ if BLINK
 
 config BLINK_INIT_PRIORITY
 	int "Blink device drivers init priority"
-	default KERNEL_INIT_PRIORITY_DEVICE
+	default 90
 	help
-	  Blink device drivers init priority.
+	  Blink device drivers init priority. Must be greater than
+	  CONFIG_DISPLAY_INIT_PRIORITY (default 85) to ensure display
+	  devices are initialized before blink drivers that depend on them.
 
 module = BLINK
 module-str = blink
 source "subsys/logging/Kconfig.template.log_config"
 
 rsource "Kconfig.gpio_led"
+rsource "Kconfig.matrix_led"
 
 endif # BLINK

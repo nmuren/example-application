@@ -1,0 +1,32 @@
+# Copyright (c) 2024 Nordic Semiconductor ASA
+# SPDX-License-Identifier: Apache-2.0
+
+description: |
+  A binding for an LED matrix-controlled blinking LED driver. This driver
+  wraps the Nordic LED matrix display driver to provide a simple blink interface.
+
+  Example definition in devicetree:
+
+    blink-matrix-led {
+        compatible = "blink-matrix-led";
+        display = <&led_matrix>;
+        blink-period-ms = <1000>;
+    };
+
+compatible: "blink-matrix-led"
+
+include: base.yaml
+
+properties:
+  display:
+    type: phandle
+    required: true
+    description: Reference to the LED matrix display device.
+
+  blink-period-ms:
+    type: int
+    description: Initial blinking period in milliseconds.
+
+  # TODO: Add a property for the default brightness here
+  # What type is appropriate for a brightness value?
+  # What should be a reasonable default value?
