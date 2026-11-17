@@ -1,0 +1,23 @@
+:name: BBC micro:bit V2 - ble_observer
+:description: Sheet 4 BLE advertising/scanning with micro:bit-targeted ELFs
+
+using sysbus
+$observer_bin?=$ORIGIN/../ble_observer/build-renode/zephyr/zephyr.elf
+
+emulation CreateBLEMedium "wireless"
+emulation SetGlobalQuantum "0.00001"
+
+mach create "observer"
+machine LoadPlatformDescription $ORIGIN/microbit_ble.repl
+connector Connect radio wireless
+wireless SetPosition radio 0 0 0
+emulation CreateServerSocketTerminal 60001 "observer_uart" false
+connector Connect uart0 observer_uart
+showAnalyzer uart0
+sysbus LoadELF $observer_bin
+cpu0 VectorTableOffset `sysbus GetSymbolAddress "_vector_table"`
+
+# Optional Wireshark capture: uncomment if Wireshark is installed.
+# emulation LogBLETraffic
+
+start
