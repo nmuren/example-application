@@ -14,11 +14,9 @@
 
 #include <app/drivers/blink.h>
 
-LOG_MODULE_REGISTER(blink_matrix_led, CONFIG_BLINK_LOG_LEVEL);
+#include "matrix_font.h"
 
-/* Macro to create pixel patterns for 5x5 LED matrix */
-#define PIXEL_BIT(idx, val)  (val ? BIT(idx) : 0)
-#define PIXEL_MASK(...)      (FOR_EACH_IDX(PIXEL_BIT, (|), __VA_ARGS__))
+LOG_MODULE_REGISTER(blink_matrix_led, CONFIG_BLINK_LOG_LEVEL);
 
 struct blink_matrix_led_data {
 	struct k_timer timer;
@@ -31,107 +29,14 @@ struct blink_matrix_led_config {
 	uint8_t brightness;
 };
 
-/* "NEBİL MÜREN": one 5x5 frame per character. */
-static const uint8_t letter_patterns[][5] = {
-	/* N */
-	{
-		PIXEL_MASK(1,0,0,0,1), 
-		PIXEL_MASK(1,1,0,0,1),
-		PIXEL_MASK(1,0,1,0,1), 
-		PIXEL_MASK(1,0,0,1,1),
-		PIXEL_MASK(1,0,0,0,1)
-	},
-	/* E */
-	{
-		PIXEL_MASK(1,1,1,1,1), 
-		PIXEL_MASK(1,0,0,0,0),
-		PIXEL_MASK(1,1,1,1,0), 
-		PIXEL_MASK(1,0,0,0,0),
-		PIXEL_MASK(1,1,1,1,1)
-	},
-	/* B */
-	{
-		PIXEL_MASK(1,1,1,1,0), 
-		PIXEL_MASK(1,0,0,0,1),
-		PIXEL_MASK(1,1,1,1,0), 
-		PIXEL_MASK(1,0,0,0,1),
-		PIXEL_MASK(1,1,1,1,0)
-	},
-	/* İ */
-	{
-		PIXEL_MASK(0,0,1,0,0), 
-		PIXEL_MASK(0,0,0,0,0),
-		PIXEL_MASK(0,1,1,1,0), 
-		PIXEL_MASK(0,0,1,0,0),
-		PIXEL_MASK(0,1,1,1,0)
-	},
-	/* L */
-	{
-		PIXEL_MASK(1,0,0,0,0), 
-		PIXEL_MASK(1,0,0,0,0),
-		PIXEL_MASK(1,0,0,0,0), 
-		PIXEL_MASK(1,0,0,0,0),
-		PIXEL_MASK(1,1,1,1,1)
-	},
-
-	/* Space */
-	{
-		PIXEL_MASK(0,0,0,0,0), 
-		PIXEL_MASK(0,0,0,0,0),
-		PIXEL_MASK(0,0,0,0,0), 
-		PIXEL_MASK(0,0,0,0,0),
-		PIXEL_MASK(0,0,0,0,0)
-	},
-
-	/* M */
-	{
-		PIXEL_MASK(1,0,0,0,1), 
-		PIXEL_MASK(1,1,0,1,1),
-		PIXEL_MASK(1,0,1,0,1), 
-		PIXEL_MASK(1,0,0,0,1),
-		PIXEL_MASK(1,0,0,0,1)
-	},
-	/* Ü */
-	{
-		PIXEL_MASK(0,1,0,1,0), 
-		PIXEL_MASK(0,0,0,0,0),
-		PIXEL_MASK(1,0,0,0,1), 
-		PIXEL_MASK(1,0,0,0,1),
-		PIXEL_MASK(0,1,1,1,0)
-	},
-	/* R */
-	{
-		PIXEL_MASK(1,1,1,1,0), 
-		PIXEL_MASK(1,0,0,0,1),
-		PIXEL_MASK(1,1,1,1,0), 
-		PIXEL_MASK(1,0,1,0,0),
-		PIXEL_MASK(1,0,0,1,0)
-	},
-	/* E */
-	{
-		PIXEL_MASK(1,1,1,1,1), 
-		PIXEL_MASK(1,0,0,0,0),
-		PIXEL_MASK(1,1,1,1,0), 
-		PIXEL_MASK(1,0,0,0,0),
-		PIXEL_MASK(1,1,1,1,1)
-	},
-	/* N */
-	{
-		PIXEL_MASK(1,0,0,0,1), 
-		PIXEL_MASK(1,1,0,0,1),
-		PIXEL_MASK(1,0,1,0,1), 
-		PIXEL_MASK(1,0,0,1,1),
-		PIXEL_MASK(1,0,0,0,1)
-	},
-};
-
-/* Blank pattern (all LEDs off) */
-static const uint8_t blank_pattern[] = {
-	PIXEL_MASK(0, 0, 0, 0, 0),
-	PIXEL_MASK(0, 0, 0, 0, 0),
-	PIXEL_MASK(0, 0, 0, 0, 0),
-	PIXEL_MASK(0, 0, 0, 0, 0),
-	PIXEL_MASK(0, 0, 0, 0, 0),
+/* "I <heart> IOT", followed by a blank. */
+static const uint8_t *const letter_patterns[] = {
+	matrix_letter_patterns['I' - 'A'],
+	heart_pattern,
+	matrix_letter_patterns['I' - 'A'],
+	matrix_letter_patterns['O' - 'A'],
+	matrix_letter_patterns['T' - 'A'],
+	blank_pattern,
 };
 
 static void display_pattern(const struct device *display, const uint8_t *pattern)
