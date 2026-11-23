@@ -5,6 +5,7 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/sensor.h>
+#include <zephyr/input/input.h>
 #include <zephyr/logging/log.h>
 
 #include <app/drivers/blink.h>
@@ -17,6 +18,48 @@ LOG_MODULE_REGISTER(main, CONFIG_APP_LOG_LEVEL);
 #define BLINK_PERIOD_MS_FAST 200U
 #define SHAKE_THRESHOLD_MM_S2 10000
 #define SHAKE_COOLDOWN_MS 1000
+
+#define BLINK_LED_NODE DT_NODELABEL(blink_led)
+#define BRIGHTNESS_KEY_NODE DT_ALIAS(brightness_button)
+#define BUTTONS_NODE DT_PARENT(BRIGHTNESS_KEY_NODE)
+
+#if defined(CONFIG_INPUT_GPIO_KEYS) && \
+	DT_NODE_HAS_COMPAT_STATUS(BUTTONS_NODE, gpio_keys, okay) && \
+	DT_NODE_HAS_STATUS(BRIGHTNESS_KEY_NODE, okay) && \
+	DT_NODE_HAS_PROP(BLINK_LED_NODE, brightness_level)
+static void cycle_brightness(struct input_event *event, void *user_data)
+{
+	static const uint8_t levels[] = { 0, 64, 128, 192, 255 };
+	static uint8_t brightness = DT_PROP(BLINK_LED_NODE, brightness_level);
+	const struct device *blink = DEVICE_DT_GET(BLINK_LED_NODE);
+	const uint16_t button_code = DT_PROP(BRIGHTNESS_KEY_NODE, zephyr_code);
+	size_t next = 0;
+	int ret;
+
+	ARG_UNUSED(user_data);
+
+	if (event->type != INPUT_EV_KEY || event->code != button_code ||
+	    event->value != 1 || !device_is_ready(blink)) {
+		return;
+	}
+
+	/* The startup brightness can be between two steps. */
+	while (next < ARRAY_SIZE(levels) && levels[next] <= brightness) {
+		++next;
+	}
+	next %= ARRAY_SIZE(levels);
+
+	ret = blink_set_brightness(blink, levels[next]);
+	if (ret < 0) {
+		LOG_ERR("Could not set matrix brightness (%d)", ret);
+		return;
+	}
+
+	brightness = levels[next];
+}
+
+INPUT_CALLBACK_DEFINE(DEVICE_DT_GET(BUTTONS_NODE), cycle_brightness, NULL);
+#endif
 
 int main(void)
 {
@@ -36,7 +79,7 @@ int main(void)
 		return 0;
 	}
 
-	blink = DEVICE_DT_GET(DT_NODELABEL(blink_led));
+	blink = DEVICE_DT_GET(BLINK_LED_NODE);
 	if (!device_is_ready(blink)) {
 		LOG_ERR("Blink LED not ready");
 		return 0;

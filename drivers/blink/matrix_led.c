@@ -8,6 +8,7 @@
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/display.h>
+#include <zephyr/irq.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <string.h>
@@ -87,8 +88,29 @@ static int blink_matrix_led_set_period_ms(const struct device *dev,
 	return 0;
 }
 
+static int blink_matrix_led_set_brightness(const struct device *dev,
+					   uint8_t brightness)
+{
+	const struct blink_matrix_led_config *config = dev->config;
+	unsigned int key;
+	int ret;
+
+	/* The Nordic matrix updates brightness without blocking. */
+	if (config->display != DEVICE_DT_GET_ANY(nordic_nrf_led_matrix)) {
+		return -ENOTSUP;
+	}
+
+	/* Frame writes run in the animation timer interrupt. */
+	key = irq_lock();
+	ret = display_set_brightness(config->display, brightness);
+	irq_unlock(key);
+
+	return ret;
+}
+
 static DEVICE_API(blink, blink_matrix_led_api) = {
 	.set_period_ms = &blink_matrix_led_set_period_ms,
+	.set_brightness = &blink_matrix_led_set_brightness,
 };
 
 static int blink_matrix_led_init(const struct device *dev)

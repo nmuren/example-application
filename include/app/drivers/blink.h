@@ -6,6 +6,8 @@
 #ifndef APP_DRIVERS_BLINK_H_
 #define APP_DRIVERS_BLINK_H_
 
+#include <errno.h>
+#include <stdint.h>
 #include <zephyr/device.h>
 #include <zephyr/toolchain.h>
 
@@ -48,6 +50,8 @@ __subsystem struct blink_driver_api {
 	 * @retval -errno Other negative errno code on failure.
 	 */
 	int (*set_period_ms)(const struct device *dev, unsigned int period_ms);
+	/** @brief Set the brightness, if supported. */
+	int (*set_brightness)(const struct device *dev, uint8_t brightness);
 };
 
 /** @} */
@@ -85,6 +89,28 @@ static inline int z_impl_blink_set_period_ms(const struct device *dev,
 	__ASSERT_NO_MSG(DEVICE_API_IS(blink, dev));
 
 	return DEVICE_API_GET(blink, dev)->set_period_ms(dev, period_ms);
+}
+
+/**
+ * @brief Set the LED brightness on a scale of 0 to 255.
+ *
+ * @param dev Blink device instance.
+ * @param brightness Requested brightness level.
+ * @retval 0 if successful.
+ * @retval -ENOTSUP if runtime brightness control is unsupported.
+ * @retval -errno Other negative errno code on failure.
+ */
+static inline int blink_set_brightness(const struct device *dev,
+				       uint8_t brightness)
+{
+	__ASSERT_NO_MSG(DEVICE_API_IS(blink, dev));
+	const struct blink_driver_api *api = DEVICE_API_GET(blink, dev);
+
+	if (api->set_brightness == NULL) {
+		return -ENOTSUP;
+	}
+
+	return api->set_brightness(dev, brightness);
 }
 
 /**

@@ -12,6 +12,10 @@
  */
 
 / {
+	aliases {
+		brightness-button = &buttonA;
+	};
+
 	example_sensor: example-sensor {
 		compatible = "zephyr,example-sensor";
 		input-gpios = <&gpio0 23 GPIO_ACTIVE_LOW>;  /* Button B */
@@ -27,6 +31,10 @@
 
 &gpio0 {
 	status = "okay";
+};
+
+&{/gpio_keys} {
+	polling-mode;
 };
 
 &led_matrix {
