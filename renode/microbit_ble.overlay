@@ -1,0 +1,17 @@
+/* Simulation-only SI7021 on the micro:bit I2C bus. Do not use for flashing. */
+/ {
+    aliases {
+        temphum0 = &si7021;
+    };
+};
+
+&i2c0 {
+    compatible = "nordic,nrf-twi";
+    status = "okay";
+
+    si7021: si7021@40 {
+        compatible = "silabs,si7006";
+        reg = <0x40>;
+        status = "okay";
+    };
+};

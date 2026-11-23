@@ -1,0 +1,55 @@
+// BBC micro:bit V2 BLE extension for Renode 1.17.
+// Uses the Sheet 1 platform, with radio/controller peripherals and an SI7021.
+// The SI7021 is simulation-only; it is not fitted to the physical micro:bit.
+using "microbit_visualizer/microbit_v2.repl"
+
+radio: Wireless.NRF52840_Radio @ sysbus 0x40001000
+    -> nvic0@1
+
+ppi: Miscellaneous.NRF52840_PPI @ sysbus 0x4001F000
+
+timer0: Timers.NRF52840_Timer @ sysbus 0x40008000
+    numberOfEvents: 4
+    -> nvic0@8
+
+timer1: Timers.NRF52840_Timer @ sysbus 0x40009000
+    numberOfEvents: 4
+    -> nvic0@9
+
+timer2: Timers.NRF52840_Timer @ sysbus 0x4000A000
+    numberOfEvents: 4
+    -> nvic0@10
+
+timer3: Timers.NRF52840_Timer @ sysbus 0x4001A000
+    numberOfEvents: 6
+    -> nvic0@26
+
+timer4: Timers.NRF52840_Timer @ sysbus 0x4001B000
+    numberOfEvents: 6
+    -> nvic0@27
+
+egu0: Miscellaneous.NRF52840_EGU @ sysbus 0x40014000
+    -> nvic0@20
+
+egu1: Miscellaneous.NRF52840_EGU @ sysbus 0x40015000
+    -> nvic0@21
+
+egu2: Miscellaneous.NRF52840_EGU @ sysbus 0x40016000
+    -> nvic0@22
+
+egu3: Miscellaneous.NRF52840_EGU @ sysbus 0x40017000
+    -> nvic0@23
+
+egu4: Miscellaneous.NRF52840_EGU @ sysbus 0x40018000
+    -> nvic0@24
+
+egu5: Miscellaneous.NRF52840_EGU @ sysbus 0x40019000
+    -> nvic0@25
+
+twi0: I2C.NRF52840_I2C @ sysbus 0x40003000
+    -> nvic0@3
+
+si7021: Sensors.SI70xx @ twi0 0x40
+    model: Model.SI7021
+    Temperature: 25
+    Humidity: 50
