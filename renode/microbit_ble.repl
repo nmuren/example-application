@@ -51,5 +51,5 @@ twi0: I2C.NRF52840_I2C @ sysbus 0x40003000
 
 si7021: Sensors.SI70xx @ twi0 0x40
     model: Model.SI7021
-    Temperature: 25
-    Humidity: 50
+    Temperature: 32
+    Humidity: 75
