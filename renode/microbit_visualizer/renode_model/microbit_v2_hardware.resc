@@ -1,0 +1,21 @@
+:name: BBC micro:bit V2 (hardware ELF / modeled PWM matrix)
+:description: Same Zephyr ELF as the real board; no simulator display driver
+
+using sysbus
+$bin?=$ORIGIN/../app/build-hardware/zephyr/zephyr.elf
+$uart_port?=60031
+$frame_port?=60033
+
+# Renode 1.17 compiles these peripheral classes at runtime; no Renode fork.
+include $ORIGIN/MicrobitPWM.cs
+include $ORIGIN/MicrobitSensors.cs
+mach create "microbit"
+machine LoadPlatformDescription $ORIGIN/microbit_v2_hardware.repl
+pwm0 OutputPort $frame_port
+
+emulation CreateServerSocketTerminal $uart_port "microbit_uart" false
+connector Connect uart0 microbit_uart
+
+sysbus LoadELF $bin
+cpu0 VectorTableOffset `sysbus GetSymbolAddress "_vector_table"`
+start

@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>micro:bit V2 • Renode visualizer</title>
+<style>
+  :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #10141c; color: #eff3fb; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; padding: 24px; }
+  main { max-width: 1050px; margin: auto; }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 15px; flex-wrap: wrap; }
+  h1 { font-size: clamp(1.5rem, 3vw, 2.15rem); margin: 0 0 8px; }
+  .caption { color: #b9c3d7; margin: 0 0 24px; }
+  #status { border: 1px solid #56647c; background: #293144; padding: 7px 12px; border-radius: 18px; white-space: nowrap; }
+  #status.live { background: #123d35; border-color: #36b79f; }
+  #status.error { background: #602d30; border-color: #e47a7a; }
+  .layout { display: grid; grid-template-columns: minmax(300px, 540px) minmax(260px, 1fr); gap: 26px; align-items: start; }
+  .board { position: relative; border-radius: 24px 24px 31px 31px; background: #212733; border: 5px solid #4a5568; padding: 28px 27px 20px; box-shadow: 0 22px 65px #0008, inset 0 0 0 2px #121820; }
+  .turntable { perspective: 850px; touch-action: none; user-select: none; min-width: 0; }
+  .board-3d { position: relative; width: 100%; aspect-ratio: 1.04; min-height: 410px; transform-style: preserve-3d; transform: rotateZ(var(--roll, 0deg)) rotateY(var(--yaw, 0deg)) rotateX(var(--pitch, 0deg)); transition: transform 90ms ease-out; cursor: grab; }
+  .board-3d.dragging { cursor: grabbing; transition: none; }
+  .board-3d .board { position: absolute; inset: 0; width: 100%; height: 100%; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+  .board-front { transform: translateZ(5px); }
+  .board-back { transform: rotateY(180deg) translateZ(5px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 17px; text-align: center; color: #cbd4e2; background: #293038; }
+  .chip { width: 40%; padding: 24px 10px; border: 3px solid #151a22; border-radius: 9px; background: repeating-linear-gradient(90deg,#10151b 0 8px,#202936 8px 10px); color: #eef2fa; font-weight: 700; }
+  .motion-controls { margin: 12px 0 0; color: #b8c5d8; font-size: .84rem; line-height: 1.5; }
+  .motion-controls button { border: 1px solid #6d819c; border-radius: 7px; background: #242e40; color: #f3f6fb; padding: 5px 10px; cursor: pointer; margin-left: 10px; }
+  .motion-controls button:focus-visible { outline: 2px solid #ffcf5c; }
+  .board::before, .board::after { content: ""; position: absolute; top: -5px; width: 35px; height: 9px; background: #b2bdcc; border-radius: 0 0 7px 7px; }
+  .board::before { left: 17%; } .board::after { right: 17%; }
+  .brand { color: #f7fbff; font-weight: 800; letter-spacing: .05em; font-size: 1.1rem; }
+  .rev { color: #9eabc0; font-size: .75rem; float: right; margin-top: 4px; }
+  .face { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 26px 0 27px; }
+  .key { flex: 0 0 54px; height: 54px; border: 3px solid #a8b2c5; background: #353d4c; color: #e9eef9; border-radius: 50%; font-size: 1rem; font-weight: 700; cursor: pointer; touch-action: none; box-shadow: 0 4px 0 #0e121a; }
+  .key:active, .key.held { background: #617487; transform: translateY(3px); box-shadow: 0 1px 0 #0e121a; }
+  .key:focus-visible { outline: 3px solid #ffcf5c; outline-offset: 4px; }
+  .matrix { width: min(61%, 270px); aspect-ratio: 1; display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(5, 1fr); gap: 5%; align-items: center; justify-items: center; }
+  .pixel { width: 100%; aspect-ratio: 1; max-width: 41px; border-radius: 50%; background: #f3d34e; opacity: .09; box-shadow: 0 0 0 2px #5b563e; transition: opacity .08s, box-shadow .08s; }
+  .pixel.on { box-shadow: 0 0 12px 4px #f7d557a6, 0 0 1px #fff; }
+  .edge { height: 27px; margin: 14px 0 0; background: repeating-linear-gradient(90deg,#c7a45b 0 10px,#8c6d3b 10px 13px); border-radius: 8px; border: 2px solid #e5c078; }
+  .pin-labels { display: flex; justify-content: space-between; color: #a9b5c8; font-size: .7rem; margin: 0 8px; }
+  .panel { background: #1b222e; border: 1px solid #3a465b; border-radius: 15px; padding: 18px; }
+  .panel h2 { font-size: 1.05rem; margin: 0 0 12px; }
+  .info { color: #b8c5d8; font-size: .9rem; line-height: 1.45; margin: 0 0 16px; }
+  .value { color: #ffdb6b; font-variant-numeric: tabular-nums; }
+  .sensor-vector { background: #111a27; border-radius: 7px; padding: 9px 12px; margin: 0 0 12px; color: #bed5ef; font: .78rem/1.5 ui-monospace, monospace; }
+  pre { margin: 0; padding: 13px; background: #0b1018; border-radius: 7px; min-height: 290px; max-height: 450px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: .82rem/1.5 ui-monospace, monospace; color: #dce8fa; }
+  footer { color: #aab8cb; font-size: .8rem; margin-top: 22px; }
+  @media (max-width: 750px) { .layout { grid-template-columns: 1fr; } .board { max-width: 510px; } }
+</style>
+</head>
+<body>
+<main>
+  <header><div><h1>BBC micro:bit V2</h1><p class="caption">Renode • board visualizer for the Zephyr driver exercise</p></div><span id="status" role="status">Waiting for Renode</span></header>
+  <div class="layout">
+    <div class="turntable" id="turntable" tabindex="0" aria-label="Rotate micro:bit: drag, or use arrow keys; Shift and arrows roll it">
+      <div class="board-3d" id="board3d">
+        <section class="board board-front" aria-label="Interactive micro:bit V2 board front">
+          <span class="brand">micro:bit</span><span class="rev">V2 • SIM</span>
+          <div class="face"><button id="buttonA" class="key" aria-label="Hold button A">A</button><div id="matrix" class="matrix" role="img" aria-label="5 by 5 LED matrix, all off"></div><button id="buttonB" class="key" aria-label="Hold button B">B</button></div>
+          <div class="pin-labels"><span>P0</span><span>P1</span><span>P2</span><span>3V</span><span>GND</span></div><div class="edge" aria-hidden="true"></div>
+        </section>
+        <section class="board board-back" aria-label="Simulated micro:bit board back"><span class="brand">micro:bit V2 • back</span><div class="chip">nRF52833</div><span>Rotate the board to change gravity and magnetic field readings.</span></section>
+      </div>
+      <div class="motion-controls"><span id="motionHint">Drag to tilt and turn · Shift+drag to roll</span><br><span id="angles">Yaw 0° · Pitch 0° · Roll 0°</span><button id="resetOrientation" type="button">Reset</button></div>
+    </div>
+    <section class="panel"><h2>UART output</h2><p class="info">Brightness: <span id="brightness" class="value">—</span> · Display: <span id="blanking" class="value">blank</span><br>Hold A or B to send a button press to Renode.</p><div class="sensor-vector">Virtual sensor input vectors<br><span id="gravityVector">Gravity: (0, 0, 1) g</span><br><span id="magVector">Magnetic: (0.25, 0.05, -0.38) G</span></div><pre id="uart" aria-label="UART output">Waiting for firmware…</pre></section>
+  </div>
+  <footer>Student blink-driver TODOs remain untouched; BLE remains unmodeled. Rotation controls require the Renode sensor model.</footer>
+</main>
+<script>
+(() => {
+  const matrix = document.querySelector('#matrix');
+  const status = document.querySelector('#status');
+  const leds = Array.from({length: 25}, (_, i) => {
+    const el = document.createElement('span');
+    el.className = 'pixel';
+    el.setAttribute('aria-hidden', 'true');
+    matrix.append(el);
+    return el;
+  });
+  const uart = document.querySelector('#uart');
+  const brightness = document.querySelector('#brightness');
+  const blanking = document.querySelector('#blanking');
+  let supportsSensors = false;
+  function show(state) {
+    if (state.sensorSupported && !supportsSensors) {
+      supportsSensors = true;
+      queueOrientation(true); // synchronize on first contact/reconnection
+    } else if (!state.sensorSupported) {
+      supportsSensors = false;
+    }
+    document.querySelector('#motionHint').textContent = supportsSensors ?
+      'Drag to tilt and turn · Shift+drag to roll · motion drives I²C sensors' :
+      'Drag to rotate visually · I²C sensors require the hardware model';
+    status.className = state.connected ? 'live' : '';
+    status.textContent = state.connected ? '● Renode connected' : '○ Waiting for Renode';
+    const active = !state.blanked && state.brightness > 0;
+    let lit = 0;
+    leds.forEach((led, i) => {
+      const on = active && !!((state.pixels >>> i) & 1);
+      if (on) lit++;
+      led.classList.toggle('on', on);
+      led.style.opacity = on ? String(.2 + .8 * state.brightness / 255) : '.09';
+    });
+    matrix.setAttribute('aria-label', `5 by 5 LED matrix, ${lit} pixels lit`);
+    brightness.textContent = String(state.brightness) + '/255';
+    blanking.textContent = state.blanked ? 'blank' : 'active';
+    const bottom = uart.scrollHeight - uart.scrollTop - uart.clientHeight < 35;
+    uart.textContent = state.uart.length ? state.uart.join('\n') : 'Waiting for firmware…';
+    if (bottom) uart.scrollTop = uart.scrollHeight;
+  }
+  const source = new EventSource('/events');
+  source.onmessage = event => show(JSON.parse(event.data));
+  source.onerror = () => {
+    status.className = 'error';
+    status.textContent = '○ Bridge disconnected';
+  };
+  async function button(name, pressed) {
+    try {
+      const response = await fetch('/button', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, pressed})
+      });
+      if (!response.ok) throw new Error('Monitor unavailable (' + response.status + ')');
+    } catch (error) {
+      status.className = 'error';
+      status.textContent = error.message;
+    }
+  }
+  for (const name of ['A', 'B']) {
+    const key = document.querySelector('#button' + name);
+    let down = false;
+    let pending = Promise.resolve();
+    function set(pressed) {
+      if (down === pressed) return;
+      down = pressed;
+      key.classList.toggle('held', pressed);
+      // Preserve press/release ordering even when two HTTP requests overlap.
+      pending = pending.then(() => button(name, pressed));
+    }
+    key.addEventListener('pointerdown', event => { key.setPointerCapture(event.pointerId); set(true); });
+    key.addEventListener('pointerup', () => set(false));
+    key.addEventListener('pointercancel', () => set(false));
+    key.addEventListener('lostpointercapture', () => set(false));
+    key.addEventListener('keydown', event => { if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); set(true); } });
+    key.addEventListener('keyup', event => { if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); set(false); } });
+    window.addEventListener('blur', () => set(false));
+  }
+
+  const turntable = document.querySelector('#turntable');
+  const board3d = document.querySelector('#board3d');
+  const angles = document.querySelector('#angles');
+  const orientation = {yaw: 0, pitch: 0, roll: 0};
+  let dragging = false;
+  let pointer = null;
+  let start = null;
+  let sendTimer = null;
+  let sending = false;
+  let dirty = false;
+  let lastSent = 0;
+  function wrapAngle(value) {
+    return ((Math.round(value) + 180) % 360 + 360) % 360 - 180;
+  }
+  function bodyVector(x, y, z) {
+    // Matches Renode model's inverse Rz(yawZ) * Ry(pitchY) * Rx(rollX).
+    // UI axes are yawY/pitchX/rollZ, so rotate the parameter names accordingly.
+    const rz = orientation.roll * Math.PI / 180;
+    const ry = orientation.yaw * Math.PI / 180;
+    const rx = orientation.pitch * Math.PI / 180;
+    const a = Math.cos(rz) * x + Math.sin(rz) * y;
+    const b = -Math.sin(rz) * x + Math.cos(rz) * y;
+    const c = Math.cos(ry) * a - Math.sin(ry) * z;
+    const d = Math.sin(ry) * a + Math.cos(ry) * z;
+    return [c, Math.cos(rx) * b + Math.sin(rx) * d, -Math.sin(rx) * b + Math.cos(rx) * d];
+  }
+  function renderOrientation() {
+    board3d.style.setProperty('--yaw', orientation.yaw + 'deg');
+    board3d.style.setProperty('--pitch', orientation.pitch + 'deg');
+    board3d.style.setProperty('--roll', orientation.roll + 'deg');
+    angles.textContent = `Yaw ${orientation.yaw}° · Pitch ${orientation.pitch}° · Roll ${orientation.roll}°`;
+    document.querySelector('#gravityVector').textContent = `Gravity: (${bodyVector(0, 0, 1).map(v => v.toFixed(2)).join(', ')}) g`;
+    document.querySelector('#magVector').textContent = `Magnetic: (${bodyVector(.25, .05, -.38).map(v => v.toFixed(2)).join(', ')}) G`;
+  }
+  async function sendOrientation() {
+    if (sending || !dirty) return;
+    sending = true;
+    do {
+      dirty = false;
+      lastSent = performance.now();
+      const values = {...orientation};
+      try {
+        const response = await fetch('/orientation', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(values)
+        });
+        if (!response.ok) throw new Error('Sensor model unavailable (' + response.status + ')');
+      } catch (error) {
+        status.className = 'error';
+        status.textContent = error.message;
+      }
+    } while (dirty);
+    sending = false;
+  }
+  function queueOrientation(immediate = false) {
+    if (!supportsSensors) return;
+    dirty = true;
+    clearTimeout(sendTimer);
+    sendTimer = setTimeout(sendOrientation, immediate ? 0 : Math.max(0, 180 - (performance.now() - lastSent)));
+  }
+  function change(values, immediate = false) {
+    for (const key of ['yaw', 'pitch', 'roll']) {
+      if (key in values) orientation[key] = wrapAngle(values[key]);
+    }
+    renderOrientation();
+    queueOrientation(immediate);
+  }
+  turntable.addEventListener('pointerdown', event => {
+    if (event.target.closest('button')) return; // buttons retain their press-and-hold behavior
+    dragging = true;
+    pointer = event.pointerId;
+    start = {x: event.clientX, y: event.clientY, ...orientation};
+    board3d.classList.add('dragging');
+    turntable.setPointerCapture(pointer);
+  });
+  turntable.addEventListener('pointermove', event => {
+    if (!dragging || event.pointerId !== pointer) return;
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    change(event.shiftKey ? {roll: start.roll + dx * .65, pitch: start.pitch - dy * .65} :
+                            {yaw: start.yaw + dx * .65, pitch: start.pitch - dy * .65});
+  });
+  function endDrag(event) {
+    if (!dragging || event.pointerId !== pointer) return;
+    dragging = false;
+    pointer = null;
+    board3d.classList.remove('dragging');
+    queueOrientation(true);
+  }
+  turntable.addEventListener('pointerup', endDrag);
+  turntable.addEventListener('pointercancel', endDrag);
+  turntable.addEventListener('lostpointercapture', endDrag);
+  turntable.addEventListener('keydown', event => {
+    if (event.target.closest('button')) return;
+    const delta = (event.key === 'ArrowRight' || event.key === 'ArrowDown') ? 10 : -10;
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+      event.preventDefault();
+      if (event.shiftKey) change({roll: orientation.roll + delta}, true);
+      else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') change({yaw: orientation.yaw + delta}, true);
+      else change({pitch: orientation.pitch + delta}, true);
+    }
+  });
+  document.querySelector('#resetOrientation').addEventListener('click', () => change({yaw: 0, pitch: 0, roll: 0}, true));
+  // A reload starts front-facing; first SSE state synchronizes the sensors.
+  renderOrientation();
+})();
+</script>
+</body>
+</html>

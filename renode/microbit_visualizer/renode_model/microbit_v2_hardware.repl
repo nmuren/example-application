@@ -1,0 +1,12 @@
+// Same BBC micro:bit V2 platform as the UART demo, with the physical display
+// controller path activated for an unchanged hardware-targeted Zephyr ELF.
+using "../microbit_v2.repl"
+
+timer4: Timers.MicrobitTimer4 @ sysbus 0x4001B000
+    numberOfEvents: 6
+    -> nvic0@27
+
+pwm0: Miscellaneous.MicrobitPWM @ sysbus 0x4001C000
+
+twim0: Miscellaneous.MicrobitSensors @ sysbus 0x40003000
+    -> nvic0@3
