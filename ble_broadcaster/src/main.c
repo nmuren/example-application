@@ -14,15 +14,12 @@
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/sys/util.h>
 
+#include <app/ble_sensor_format.h>
+#include <app/ble_sensor_packet.h>
+
 LOG_MODULE_REGISTER(main, CONFIG_APP_LOG_LEVEL);
 
-#define COMPANY_ID_TEST 0xffff
 #define UPDATE_PERIOD   K_SECONDS(1)
-
-enum sensor_kind {
-	SENSOR_KIND_ACCELEROMETER = 1,
-	SENSOR_KIND_TEMP_HUMIDITY = 2,
-};
 
 /*
  * Manufacturer-specific data starts with the 16-bit company identifier.
@@ -32,15 +29,7 @@ enum sensor_kind {
  * For SENSOR_KIND_TEMP_HUMIDITY, values are milli-degrees Celsius,
  * milli-percent relative humidity, and zero.
  */
-struct sensor_packet {
-	uint16_t company_id;
-	uint8_t sensor_kind;
-	int32_t value_1;
-	int32_t value_2;
-	int32_t value_3;
-} __packed;
-
-static struct sensor_packet packet;
+static struct ble_sensor_packet packet;
 
 static const struct bt_data advertising_data[] = {
 	BT_DATA_BYTES(BT_DATA_FLAGS, BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR),
@@ -53,15 +42,9 @@ static const struct bt_data advertising_data[] = {
 
 static const struct device *const sensor = DEVICE_DT_GET(DT_ALIAS(temphum0));
 
-static int32_t positive_fraction(int32_t milli_value)
-{
-	int32_t fraction = milli_value % 1000;
-
-	return fraction < 0 ? -fraction : fraction;
-}
-
 static int read_sensor(void)
 {
+	char formatted[BLE_SENSOR_ENVIRONMENTAL_STRING_SIZE];
 	struct sensor_value temperature;
 	struct sensor_value humidity;
 	int err;
@@ -84,14 +67,14 @@ static int read_sensor(void)
 	int32_t temperature_milli = (int32_t)(sensor_value_to_micro(&temperature) / 1000);
 	int32_t humidity_milli = (int32_t)(sensor_value_to_micro(&humidity) / 1000);
 
-	packet.sensor_kind = SENSOR_KIND_TEMP_HUMIDITY;
+	packet.sensor_kind = BLE_SENSOR_KIND_TEMP_HUMIDITY;
 	packet.value_1 = (int32_t)sys_cpu_to_le32((uint32_t)temperature_milli);
 	packet.value_2 = (int32_t)sys_cpu_to_le32((uint32_t)humidity_milli);
 	packet.value_3 = 0;
 
-	LOG_INF("Advertising temperature=%d.%03d C, humidity=%d.%03d %%",
-		temperature_milli / 1000, positive_fraction(temperature_milli),
-		humidity_milli / 1000, positive_fraction(humidity_milli));
+	ble_sensor_format_environmental(formatted, sizeof(formatted),
+					temperature_milli, humidity_milli);
+	LOG_INF("Advertising %s", formatted);
 
 	return 0;
 }
@@ -121,7 +104,7 @@ static int read_sensor(void)
 			(int32_t)(sensor_value_to_micro(&acceleration[i]) / 1000);
 	}
 
-	packet.sensor_kind = SENSOR_KIND_ACCELEROMETER;
+	packet.sensor_kind = BLE_SENSOR_KIND_ACCELEROMETER;
 	packet.value_1 = (int32_t)sys_cpu_to_le32((uint32_t)acceleration_milli[0]);
 	packet.value_2 = (int32_t)sys_cpu_to_le32((uint32_t)acceleration_milli[1]);
 	packet.value_3 = (int32_t)sys_cpu_to_le32((uint32_t)acceleration_milli[2]);
@@ -142,7 +125,7 @@ int main(void)
 	BUILD_ASSERT(3 + 2 + (sizeof(CONFIG_BT_DEVICE_NAME) - 1) +
 		     2 + sizeof(packet) <= 31,
 		     "Advertising data exceeds the legacy 31-byte limit");
-	packet.company_id = sys_cpu_to_le16(COMPANY_ID_TEST);
+	packet.company_id = sys_cpu_to_le16(BLE_SENSOR_COMPANY_ID);
 
 	if (!device_is_ready(sensor)) {
 		LOG_ERR("Sensor %s is not ready", sensor->name);
