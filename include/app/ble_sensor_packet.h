@@ -11,7 +11,7 @@
 
 #include <zephyr/toolchain.h>
 
-#define BLE_SENSOR_COMPANY_ID 0xffff
+#define BLE_SENSOR_COMPANY_ID 0x3535
 
 enum ble_sensor_kind {
 	BLE_SENSOR_KIND_ACCELEROMETER = 1,
