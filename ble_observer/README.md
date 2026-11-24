@@ -11,7 +11,15 @@ Physical-board build:
 
 ```sh
 west build -b bbc_microbit_v2 ble_observer -d ble_observer/build --pristine
+west flash -d ble_observer/build
 ```
+
+Always pass the build directory to `west flash`. Running `west flash` without
+`-d ble_observer/build` uses the repository's default `build/` directory,
+which may contain firmware from an earlier exercise.
+
+The physical observer requires a second BLE-capable board running the
+broadcaster firmware; one micro:bit cannot run both applications at once.
 
 Renode build:
 

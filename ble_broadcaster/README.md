@@ -22,7 +22,12 @@ Physical-board build:
 
 ```sh
 west build -b bbc_microbit_v2 ble_broadcaster -d ble_broadcaster/build --pristine
+west flash -d ble_broadcaster/build
 ```
+
+Always pass the build directory to `west flash`. Running `west flash` without
+`-d ble_broadcaster/build` uses the repository's default `build/` directory,
+which may contain firmware from an earlier exercise.
 
 Renode build (run from the `example-application` directory):
 
